@@ -1,65 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, uuid } from "@/lib/db";
+import { supabase, uuid } from "@/lib/db";
 
-// GET /api/sequences/:id — full sequence with steps + enrollments
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sequence = db.prepare("SELECT * FROM sequences WHERE id = ?").get(id);
+  const { data: sequence } = await supabase.from("sequences").select("*").eq("id", id).single();
   if (!sequence) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const steps = db.prepare(
-    "SELECT * FROM sequence_steps WHERE sequence_id = ? ORDER BY step_number"
-  ).all(id);
+  const { data: steps } = await supabase.from("sequence_steps").select("*").eq("sequence_id", id).order("step_number");
+  const { data: enrollments } = await supabase
+    .from("sequence_enrollments")
+    .select("*, leads(first_name, last_name, company, email)")
+    .eq("sequence_id", id)
+    .order("enrolled_at", { ascending: false });
 
-  const enrollments = db.prepare(`
-    SELECT se.*, l.first_name, l.last_name, l.company, l.email
-    FROM sequence_enrollments se
-    JOIN leads l ON l.id = se.lead_id
-    WHERE se.sequence_id = ?
-    ORDER BY se.enrolled_at DESC
-  `).all(id);
+  const enrollmentList = (enrollments || []).map((e: any) => ({
+    ...e,
+    first_name: e.leads?.first_name || "",
+    last_name: e.leads?.last_name || "",
+    company: e.leads?.company || "",
+    email: e.leads?.email || "",
+  }));
 
-  return NextResponse.json({ ...sequence as any, steps, enrollments });
+  return NextResponse.json({ ...sequence, steps: steps || [], enrollments: enrollmentList });
 }
 
-// PATCH /api/sequences/:id — update sequence + steps
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { name, description, steps } = await req.json();
 
-  const tx = db.transaction(() => {
-    if (name !== undefined || description !== undefined) {
-      const updates: string[] = [];
-      const vals: any[] = [];
-      if (name !== undefined) { updates.push("name = ?"); vals.push(name); }
-      if (description !== undefined) { updates.push("description = ?"); vals.push(description); }
-      vals.push(id);
-      db.prepare(`UPDATE sequences SET ${updates.join(", ")} WHERE id = ?`).run(...vals);
-    }
+  if (name !== undefined || description !== undefined) {
+    const updates: any = {};
+    if (name !== undefined) updates.name = name;
+    if (description !== undefined) updates.description = description;
+    await supabase.from("sequences").update(updates).eq("id", id);
+  }
 
-    if (steps) {
-      // Replace all steps
-      db.prepare("DELETE FROM sequence_steps WHERE sequence_id = ?").run(id);
-      const insertStep = db.prepare(`
-        INSERT INTO sequence_steps (id, sequence_id, step_number, delay_days, subject_template, body_template)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `);
-      for (const step of steps) {
-        insertStep.run(
-          uuid(), id, step.step_number, step.delay_days || 0,
-          step.subject_template || "", step.body_template || ""
-        );
-      }
-    }
-  });
-  tx();
+  if (steps) {
+    await supabase.from("sequence_steps").delete().eq("sequence_id", id);
+    const rows = steps.map((step: any) => ({
+      id: uuid(), sequence_id: id, step_number: step.step_number,
+      delay_days: step.delay_days || 0, subject_template: step.subject_template || "",
+      body_template: step.body_template || "",
+    }));
+    await supabase.from("sequence_steps").insert(rows);
+  }
 
   return NextResponse.json({ ok: true });
 }
 
-// DELETE /api/sequences/:id
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  db.prepare("DELETE FROM sequences WHERE id = ?").run(id);
+  await supabase.from("sequences").delete().eq("id", id);
   return NextResponse.json({ ok: true });
 }

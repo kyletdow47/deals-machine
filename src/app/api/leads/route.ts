@@ -1,97 +1,106 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, uuid } from "@/lib/db";
+import { supabase, uuid } from "@/lib/db";
 import { logActivity } from "@/lib/activity";
 
-// GET /api/leads — list all leads with optional filters
+// GET /api/leads
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search") || "";
-  const source = searchParams.get("source") || "";
+  const stage = searchParams.get("stage") || "";
   const tag = searchParams.get("tag") || "";
 
-  const stage = searchParams.get("stage") || "";
-
-  let query = `
-    SELECT l.*, GROUP_CONCAT(DISTINCT t.tag) as tags,
-      (SELECT al.created_at FROM activity_log al WHERE al.lead_id = l.id ORDER BY al.created_at DESC LIMIT 1) as last_activity,
-      (SELECT al.description FROM activity_log al WHERE al.lead_id = l.id ORDER BY al.created_at DESC LIMIT 1) as last_activity_desc
-    FROM leads l
-    LEFT JOIN tags t ON t.lead_id = l.id
-  `;
-  const conditions: string[] = [];
-  const params: string[] = [];
+  let query = supabase
+    .from("leads")
+    .select("*, tags(tag)")
+    .order("created_at", { ascending: false });
 
   if (search) {
-    conditions.push(
-      "(l.first_name LIKE ? OR l.last_name LIKE ? OR l.company LIKE ? OR l.email LIKE ?)"
-    );
-    const s = `%${search}%`;
-    params.push(s, s, s, s);
+    query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,company.ilike.%${search}%,email.ilike.%${search}%`);
   }
-  if (source) {
-    conditions.push("l.source = ?");
-    params.push(source);
-  }
-  if (tag) {
-    conditions.push("l.id IN (SELECT lead_id FROM tags WHERE tag = ?)");
-    params.push(tag);
-  }
-
   if (stage) {
-    conditions.push("l.pipeline_stage = ?");
-    params.push(stage);
+    query = query.eq("pipeline_stage", stage);
   }
 
-  if (conditions.length) query += " WHERE " + conditions.join(" AND ");
-  query += " GROUP BY l.id ORDER BY l.created_at DESC";
+  const { data } = await query;
 
-  const leads = db.prepare(query).all(...params);
+  let leads = (data || []).map((l: any) => ({
+    ...l,
+    tags: l.tags?.map((t: any) => t.tag).join(",") || null,
+  }));
+
+  // Filter by tag if specified
+  if (tag) {
+    leads = leads.filter((l: any) => l.tags?.includes(tag));
+  }
+
+  // Get last activity for each lead
+  const leadIds = leads.map((l: any) => l.id);
+  if (leadIds.length > 0) {
+    const { data: activities } = await supabase
+      .from("activity_log")
+      .select("lead_id, description, created_at")
+      .in("lead_id", leadIds)
+      .order("created_at", { ascending: false });
+
+    const lastActivity: Record<string, any> = {};
+    for (const a of activities || []) {
+      if (!lastActivity[a.lead_id]) lastActivity[a.lead_id] = a;
+    }
+
+    leads = leads.map((l: any) => ({
+      ...l,
+      last_activity: lastActivity[l.id]?.created_at || null,
+      last_activity_desc: lastActivity[l.id]?.description || null,
+    }));
+  }
+
   return NextResponse.json(leads);
 }
 
-// POST /api/leads — create a lead or bulk import
+// POST /api/leads
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
-  // Bulk import
   if (Array.isArray(body)) {
-    const insert = db.prepare(`
-      INSERT OR IGNORE INTO leads (id, email, first_name, last_name, company, title, phone, city, country, source)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    const tx = db.transaction((leads: any[]) => {
-      let count = 0;
-      for (const l of leads) {
-        const id = uuid();
-        const result = insert.run(
-          id, l.email, l.first_name || "", l.last_name || "",
-          l.company || "", l.title || "", l.phone || "",
-          l.city || "", l.country || "", l.source || "csv"
-        );
-        if (result.changes > 0) {
-          logActivity(id, "lead_created", `Imported from CSV`, { source: "csv" });
-          count++;
-        }
-      }
-      return count;
-    });
-    const count = tx(body);
+    const rows = body.map((l: any) => ({
+      id: uuid(),
+      email: l.email,
+      first_name: l.first_name || "",
+      last_name: l.last_name || "",
+      company: l.company || "",
+      title: l.title || "",
+      phone: l.phone || "",
+      city: l.city || "",
+      country: l.country || "",
+      source: l.source || "csv",
+    }));
+
+    const { data } = await supabase.from("leads").upsert(rows, { onConflict: "email", ignoreDuplicates: true }).select();
+    const count = data?.length || 0;
+
+    for (const row of data || []) {
+      await logActivity(row.id, "lead_created", "Imported from CSV", { source: "csv" });
+    }
+
     return NextResponse.json({ imported: count });
   }
 
-  // Single create
   const id = uuid();
-  db.prepare(`
-    INSERT INTO leads (id, email, first_name, last_name, company, title, phone, city, country, source, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id, body.email, body.first_name || "", body.last_name || "",
-    body.company || "", body.title || "", body.phone || "",
-    body.city || "", body.country || "", body.source || "manual",
-    body.notes || ""
-  );
+  await supabase.from("leads").insert({
+    id,
+    email: body.email,
+    first_name: body.first_name || "",
+    last_name: body.last_name || "",
+    company: body.company || "",
+    title: body.title || "",
+    phone: body.phone || "",
+    city: body.city || "",
+    country: body.country || "",
+    source: body.source || "manual",
+    notes: body.notes || "",
+  });
 
-  logActivity(id, "lead_created", `Added manually`, { source: "manual" });
+  await logActivity(id, "lead_created", "Added manually", { source: "manual" });
 
   return NextResponse.json({ id });
 }

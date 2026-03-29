@@ -1,29 +1,25 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { supabase } from "@/lib/db";
 
-// GET /api/stats — dashboard stats
 export async function GET() {
-  const totalLeads = (db.prepare("SELECT COUNT(*) as c FROM leads").get() as any).c;
-  const callsPending = (db.prepare("SELECT COUNT(*) as c FROM call_queue WHERE status = 'pending'").get() as any).c;
-  const callsToday = (db.prepare("SELECT COUNT(*) as c FROM call_queue WHERE status = 'completed' AND completed_at >= date('now')").get() as any).c;
-  const activeSequences = (db.prepare("SELECT COUNT(*) as c FROM sequence_enrollments WHERE status = 'active'").get() as any).c;
+  const { count: totalLeads } = await supabase.from("leads").select("*", { count: "exact", head: true });
+  const { count: callsPending } = await supabase.from("call_queue").select("*", { count: "exact", head: true }).eq("status", "pending");
 
-  const pipeline = db.prepare(`
-    SELECT pipeline_stage, COUNT(*) as count
-    FROM leads
-    GROUP BY pipeline_stage
-  `).all();
+  const today = new Date().toISOString().split("T")[0];
+  const { count: callsToday } = await supabase.from("call_queue").select("*", { count: "exact", head: true }).eq("status", "completed").gte("completed_at", today);
+  const { count: activeSequences } = await supabase.from("sequence_enrollments").select("*", { count: "exact", head: true }).eq("status", "active");
 
+  const { data: leads } = await supabase.from("leads").select("pipeline_stage");
   const pipelineMap: Record<string, number> = {};
-  for (const row of pipeline as any[]) {
-    pipelineMap[row.pipeline_stage] = row.count;
+  for (const l of leads || []) {
+    pipelineMap[l.pipeline_stage] = (pipelineMap[l.pipeline_stage] || 0) + 1;
   }
 
   return NextResponse.json({
-    total_leads: totalLeads,
-    calls_pending: callsPending,
-    calls_today: callsToday,
-    active_sequences: activeSequences,
+    total_leads: totalLeads || 0,
+    calls_pending: callsPending || 0,
+    calls_today: callsToday || 0,
+    active_sequences: activeSequences || 0,
     pipeline: pipelineMap,
   });
 }

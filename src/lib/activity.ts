@@ -1,4 +1,4 @@
-import { db, uuid } from "./db";
+import { supabase, uuid } from "./db";
 
 export type ActionType =
   | "lead_created"
@@ -17,34 +17,42 @@ export type ActionType =
   | "list_added"
   | "meeting_synced";
 
-const insertStmt = db.prepare(
-  "INSERT INTO activity_log (id, lead_id, action, description, metadata) VALUES (?, ?, ?, ?, ?)"
-);
-
-export function logActivity(
+export async function logActivity(
   leadId: string,
   action: ActionType,
   description: string,
   metadata: Record<string, any> = {}
 ) {
-  insertStmt.run(uuid(), leadId, action, description, JSON.stringify(metadata));
+  await supabase.from("activity_log").insert({
+    id: uuid(),
+    lead_id: leadId,
+    action,
+    description,
+    metadata,
+  });
 }
 
-export function getActivities(leadId: string, limit = 50) {
-  return db
-    .prepare(
-      "SELECT * FROM activity_log WHERE lead_id = ? ORDER BY created_at DESC LIMIT ?"
-    )
-    .all(leadId, limit);
+export async function getActivities(leadId: string, limit = 50) {
+  const { data } = await supabase
+    .from("activity_log")
+    .select("*")
+    .eq("lead_id", leadId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return data || [];
 }
 
-export function getRecentActivities(limit = 20) {
-  return db
-    .prepare(`
-      SELECT al.*, l.first_name, l.last_name, l.company
-      FROM activity_log al
-      JOIN leads l ON l.id = al.lead_id
-      ORDER BY al.created_at DESC LIMIT ?
-    `)
-    .all(limit);
+export async function getRecentActivities(limit = 20) {
+  const { data } = await supabase
+    .from("activity_log")
+    .select("*, leads(first_name, last_name, company)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return (data || []).map((a: any) => ({
+    ...a,
+    first_name: a.leads?.first_name || "",
+    last_name: a.leads?.last_name || "",
+    company: a.leads?.company || "",
+  }));
 }
