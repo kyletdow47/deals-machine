@@ -5,10 +5,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
+/* ── Base ─────────────────────────────────────────────────── */
 body {
   font-family: 'Inter', sans-serif;
   background-color: #fff8f1;
   color: #201b11;
+  -webkit-font-smoothing: antialiased;
+}
+.dark body {
+  background-color: #1a1814;
+  color: #faefdf;
 }
 
 h1, h2, h3, .font-headline {
@@ -20,9 +26,14 @@ h1, h2, h3, .font-headline {
   vertical-align: middle;
 }
 
+/* ── Utility Classes ──────────────────────────────────────── */
 .glass-effect {
   background: rgba(255, 248, 241, 0.7);
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.dark .glass-effect {
+  background: rgba(26, 24, 20, 0.8);
 }
 
 .metallic-silk {
@@ -32,21 +43,110 @@ h1, h2, h3, .font-headline {
 .editorial-shadow {
   box-shadow: 0px 20px 40px rgba(32, 27, 17, 0.06);
 }
+.dark .editorial-shadow {
+  box-shadow: 0px 20px 40px rgba(0, 0, 0, 0.3);
+}
 
 .ticker-mask {
   mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
 }
 
-::-webkit-scrollbar {
-  width: 4px;
+/* ── Animations ───────────────────────────────────────────── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-::-webkit-scrollbar-thumb {
-  background: #d1c5b1;
-  border-radius: 10px;
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #7f7664;
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideOutRight {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(16px); }
+}
+
+.animate-fadeSlideUp { animation: fadeSlideUp 0.3s ease-out both; }
+.animate-fadeIn { animation: fadeIn 0.2s ease-out both; }
+.animate-scaleIn { animation: scaleIn 0.2s ease-out both; }
+.animate-ticker { animation: ticker 30s linear infinite; }
+.animate-slideInRight { animation: slideInRight 0.3s ease-out both; }
+.animate-slideOutRight { animation: slideOutRight 0.3s ease-out both; }
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.dark .animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Stagger children */
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+
+/* ── Premium Interactions ─────────────────────────────────── */
+.card-hover {
+  transition: all 0.2s ease;
+}
+.card-hover:hover {
+  box-shadow: 0px 24px 48px rgba(32, 27, 17, 0.1);
+  transform: translateY(-2px);
+}
+.dark .card-hover:hover {
+  box-shadow: 0px 24px 48px rgba(0, 0, 0, 0.4);
+}
+
+.btn-press {
+  transition: transform 0.1s ease;
+}
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* ── Scrollbar ────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1c5b1; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #7f7664; }
+.dark ::-webkit-scrollbar-thumb { background: #4d4636; }
+
+/* ── Active nav indicator ─────────────────────────────────── */
+.nav-active-bar {
+  position: relative;
+}
+.nav-active-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 25%;
+  height: 50%;
+  width: 3px;
+  background: #765a00;
+  border-radius: 0 4px 4px 0;
 }

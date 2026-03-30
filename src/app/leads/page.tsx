@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useToast } from "@/components/Toast";
 
 interface Lead {
   id: string;
@@ -44,11 +46,17 @@ function timeAgo(dateStr: string | null): string {
 }
 
 export default function LeadsPage() {
+  return <Suspense><LeadsContent /></Suspense>;
+}
+
+function LeadsContent() {
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const [search, setSearch] = useState(searchParams.get("search") || "");
   const [stageFilter, setStageFilter] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [showAdd, setShowAdd] = useState(false);
+  const [showAdd, setShowAdd] = useState(searchParams.get("new") === "1");
   const [showImport, setShowImport] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -90,7 +98,7 @@ export default function LeadsPage() {
     });
     const res = await fetch("/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rows) });
     const data = await res.json();
-    alert(`Imported ${data.imported} contacts`);
+    toast(`Imported ${data.imported} contacts`);
     setShowImport(false);
     fetchLeads();
   };
@@ -98,7 +106,7 @@ export default function LeadsPage() {
   const addToCallQueue = async () => {
     if (selected.size === 0) return;
     await fetch("/api/calls", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lead_ids: Array.from(selected) }) });
-    alert(`Added ${selected.size} lead(s) to call queue`);
+    toast(`Added ${selected.size} lead(s) to call queue`);
     setSelected(new Set());
   };
 

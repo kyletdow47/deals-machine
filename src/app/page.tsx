@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
+import { SkeletonPage } from "@/components/Skeleton";
 
 interface Stats {
   total_leads: number;
@@ -53,8 +55,16 @@ export default function DashboardPage() {
     fetch("/api/activity?limit=10").then((r) => r.json()).then(setActivities);
   }, []);
 
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (stats !== null) setLoading(false);
+  }, [stats]);
+
   const pipelineStages = ["new", "contacted", "discovery", "proposal", "negotiation", "closed-won"];
   const totalInPipeline = stats ? pipelineStages.reduce((s, k) => s + (stats.pipeline[k] || 0), 0) : 0;
+
+  if (loading) return <SkeletonPage />;
 
   return (
     <div>
@@ -69,32 +79,32 @@ export default function DashboardPage() {
         <div className="flex-grow flex flex-col gap-8">
 
           {/* Market Pulse Stats */}
-          <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-surface-container-highest/60 backdrop-blur-sm p-5 rounded-2xl border border-outline-variant/20 shadow-sm">
+          <section className="grid grid-cols-1 md:grid-cols-4 gap-4 stagger-children">
+            <div className="bg-surface-container-highest/60 backdrop-blur-sm p-5 rounded-2xl border border-outline-variant/20 shadow-sm card-hover animate-fadeSlideUp">
               <span className="text-[10px] font-bold uppercase tracking-widest text-outline">Total Leads</span>
               <div className="flex items-end justify-between mt-2">
-                <span className="text-2xl font-black text-primary font-headline">{stats?.total_leads || 0}</span>
+                <span className="text-2xl font-black text-primary font-headline"><AnimatedNumber value={stats?.total_leads || 0} /></span>
                 <span className="material-symbols-outlined text-primary/30">group</span>
               </div>
             </div>
-            <div className="bg-surface-container-highest/60 backdrop-blur-sm p-5 rounded-2xl border border-outline-variant/20 shadow-sm">
+            <div className="bg-surface-container-highest/60 backdrop-blur-sm p-5 rounded-2xl border border-outline-variant/20 shadow-sm card-hover animate-fadeSlideUp">
               <span className="text-[10px] font-bold uppercase tracking-widest text-outline">Calls Pending</span>
               <div className="flex items-end justify-between mt-2">
-                <span className="text-2xl font-black text-primary font-headline">{stats?.calls_pending || 0}</span>
+                <span className="text-2xl font-black text-primary font-headline"><AnimatedNumber value={stats?.calls_pending || 0} /></span>
                 <span className="material-symbols-outlined text-primary/30">call</span>
               </div>
             </div>
-            <div className="bg-surface-container-highest/60 backdrop-blur-sm p-5 rounded-2xl border border-outline-variant/20 shadow-sm">
+            <div className="bg-surface-container-highest/60 backdrop-blur-sm p-5 rounded-2xl border border-outline-variant/20 shadow-sm card-hover animate-fadeSlideUp">
               <span className="text-[10px] font-bold uppercase tracking-widest text-outline">Calls Today</span>
               <div className="flex items-end justify-between mt-2">
-                <span className="text-2xl font-black text-primary font-headline">{stats?.calls_today || 0}</span>
+                <span className="text-2xl font-black text-primary font-headline"><AnimatedNumber value={stats?.calls_today || 0} /></span>
                 <span className="material-symbols-outlined text-primary/30">trending_up</span>
               </div>
             </div>
-            <div className="bg-surface-container-highest/60 backdrop-blur-sm p-5 rounded-2xl border border-outline-variant/20 shadow-sm">
+            <div className="bg-surface-container-highest/60 backdrop-blur-sm p-5 rounded-2xl border border-outline-variant/20 shadow-sm card-hover animate-fadeSlideUp">
               <span className="text-[10px] font-bold uppercase tracking-widest text-outline">Active Sequences</span>
               <div className="flex items-end justify-between mt-2">
-                <span className="text-2xl font-black text-primary font-headline">{stats?.active_sequences || 0}</span>
+                <span className="text-2xl font-black text-primary font-headline"><AnimatedNumber value={stats?.active_sequences || 0} /></span>
                 <span className="material-symbols-outlined text-primary/30">forward_to_inbox</span>
               </div>
             </div>

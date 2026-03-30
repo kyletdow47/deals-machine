@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,6 +10,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Light mode surfaces
         "primary": "#765a00",
         "on-primary": "#ffffff",
         "primary-container": "#e1b952",
@@ -56,6 +58,12 @@ const config: Config = {
         "inverse-surface": "#353025",
         "inverse-on-surface": "#faefdf",
         "inverse-primary": "#eac25a",
+        // Dark mode overrides
+        "dark-surface": "#1a1814",
+        "dark-surface-container": "#252219",
+        "dark-surface-container-high": "#302c22",
+        "dark-surface-container-highest": "#3b362b",
+        "dark-on-surface": "#faefdf",
       },
       fontFamily: {
         headline: ["Manrope", "sans-serif"],
@@ -63,20 +71,11 @@ const config: Config = {
         label: ["Inter", "sans-serif"],
       },
       borderRadius: {
-        DEFAULT: "0.125rem",
-        lg: "0.25rem",
-        xl: "0.5rem",
-        "2xl": "0.75rem",
-        "3xl": "1rem",
-      },
-      keyframes: {
-        ticker: {
-          "0%": { transform: "translateX(100%)" },
-          "100%": { transform: "translateX(-100%)" },
-        },
-      },
-      animation: {
-        ticker: "ticker 30s linear infinite",
+        DEFAULT: "0.25rem",
+        lg: "0.5rem",
+        xl: "1rem",
+        "2xl": "1.25rem",
+        "3xl": "1.5rem",
       },
     },
   },
