@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 
 interface CallItem {
   id: string;
@@ -13,19 +14,17 @@ interface CallItem {
   email: string;
   city: string;
   tags: string | null;
-  status: string;
-  queued_at: string;
 }
 
 const outcomes = [
-  { value: "positive", label: "Positive", color: "bg-green-600 hover:bg-green-500", desc: "Interested — add to Positive list" },
-  { value: "negative", label: "Not a Fit", color: "bg-red-600 hover:bg-red-500", desc: "Not a fit — add to Negative list" },
-  { value: "callback", label: "Call Back Later", color: "bg-yellow-600 hover:bg-yellow-500", desc: "Schedule a callback" },
-  { value: "follow-up-email", label: "Follow-Up Email", color: "bg-blue-600 hover:bg-blue-500", desc: "Send to email sequence" },
-  { value: "completed", label: "Done", color: "bg-zinc-600 hover:bg-zinc-500", desc: "Completed — no action needed" },
+  { value: "positive", label: "Interested", icon: "thumb_up", color: "bg-primary text-on-primary", desc: "Add to Positive list" },
+  { value: "negative", label: "Not a Fit", icon: "thumb_down", color: "bg-error text-on-error", desc: "Add to Negative list" },
+  { value: "callback", label: "Call Back", icon: "schedule", color: "bg-primary-container text-on-primary-container", desc: "Schedule follow-up" },
+  { value: "follow-up-email", label: "Email Follow-Up", icon: "forward_to_inbox", color: "bg-secondary text-on-secondary", desc: "Send to email sequence" },
+  { value: "completed", label: "Done", icon: "check_circle", color: "bg-outline text-on-primary", desc: "No action needed" },
 ];
 
-export default function CallsPage() {
+export default function DialerPage() {
   const [queue, setQueue] = useState<CallItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [notes, setNotes] = useState("");
@@ -34,15 +33,12 @@ export default function CallsPage() {
 
   const fetchQueue = useCallback(async () => {
     const res = await fetch("/api/calls?status=pending");
-    const data = await res.json();
-    setQueue(data);
+    setQueue(await res.json());
     setCurrentIndex(0);
     setNotes("");
   }, []);
 
-  useEffect(() => {
-    fetchQueue();
-  }, [fetchQueue]);
+  useEffect(() => { fetchQueue(); }, [fetchQueue]);
 
   const current = queue[currentIndex];
   const remaining = queue.length - currentIndex;
@@ -50,140 +46,190 @@ export default function CallsPage() {
   const handleOutcome = async (outcome: string) => {
     if (!current || processing) return;
     setProcessing(true);
-
     await fetch(`/api/calls/${current.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ outcome, notes }),
     });
-
     setCompletedCount((c) => c + 1);
     setNotes("");
     setProcessing(false);
-
-    if (currentIndex < queue.length - 1) {
-      setCurrentIndex((i) => i + 1);
-    } else {
-      setQueue([]);
-    }
+    if (currentIndex < queue.length - 1) setCurrentIndex((i) => i + 1);
+    else setQueue([]);
   };
 
   if (queue.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-        <div className="text-5xl">📞</div>
-        <h1 className="text-2xl font-bold">Call Queue Empty</h1>
-        <p className="text-zinc-500">
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6">
+        <span className="material-symbols-outlined text-7xl text-outline-variant">call</span>
+        <h1 className="text-3xl font-headline font-extrabold">Call Queue Empty</h1>
+        <p className="text-on-surface-variant max-w-md text-center">
           {completedCount > 0
-            ? `Nice work — ${completedCount} call${completedCount !== 1 ? "s" : ""} completed this session.`
+            ? `Great session — ${completedCount} call${completedCount !== 1 ? "s" : ""} completed.`
             : "Go to Lead Bank to add contacts to the call queue."
           }
         </p>
+        <Link href="/leads" className="metallic-silk text-white px-8 py-3 rounded-xl font-bold text-sm shadow-xl">
+          Open Lead Bank
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Progress bar */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl font-bold">Call Queue</h1>
-          <span className="text-sm text-zinc-500">{remaining} remaining · {completedCount} done</span>
-        </div>
-        <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-blue-600 transition-all duration-300"
-            style={{ width: `${(currentIndex / queue.length) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Current Contact Card */}
-      {current && (
-        <div className="border border-zinc-800 rounded-xl p-6 mb-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h2 className="text-xl font-semibold">
-                {current.first_name} {current.last_name}
-              </h2>
-              <p className="text-zinc-400">{current.title} at {current.company}</p>
-            </div>
-            <span className="text-xs text-zinc-600 bg-zinc-800 px-2 py-1 rounded">
-              #{currentIndex + 1} of {queue.length}
-            </span>
+    <div>
+      {/* Header */}
+      <header className="mb-8 flex justify-between items-end">
+        <div>
+          <span className="text-primary font-label font-bold uppercase tracking-[0.2em] text-[10px]">Active Session</span>
+          <h2 className="font-headline text-3xl font-extrabold text-on-surface tracking-tight">Dialer</h2>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="text-xs text-on-surface-variant">{remaining} remaining · {completedCount} done</span>
           </div>
+        </div>
+        {/* Progress */}
+        <div className="w-48">
+          <div className="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+            <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${queue.length > 0 ? (currentIndex / queue.length) * 100 : 0}%` }} />
+          </div>
+        </div>
+      </header>
 
-          <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-            {current.phone && (
-              <div>
-                <span className="text-zinc-500">Phone</span>
-                <p className="font-mono">{current.phone}</p>
+      {current && (
+        <div className="grid grid-cols-12 gap-8">
+          {/* Left: Lead Profile */}
+          <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+            <section className="bg-surface-container-highest p-8 rounded-xl shadow-sm border border-outline-variant/5">
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">Lead Contact</p>
+                  <h3 className="font-headline text-2xl font-bold text-on-background">{current.first_name} {current.last_name}</h3>
+                  <p className="text-on-surface-variant text-sm">{current.title}{current.title && current.company ? " at " : ""}{current.company}</p>
+                </div>
+                <span className="text-[10px] bg-surface-container-low px-2 py-1 rounded text-outline font-bold">
+                  #{currentIndex + 1} / {queue.length}
+                </span>
               </div>
-            )}
-            {current.email && (
-              <div>
-                <span className="text-zinc-500">Email</span>
-                <p>{current.email}</p>
+              <div className="space-y-5">
+                {current.phone && (
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+                      <span className="material-symbols-outlined">call</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-label uppercase text-on-surface-variant">Phone</p>
+                      <p className="text-sm font-mono font-medium">{current.phone}</p>
+                    </div>
+                  </div>
+                )}
+                {current.email && (
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+                      <span className="material-symbols-outlined">mail</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-label uppercase text-on-surface-variant">Email</p>
+                      <p className="text-sm font-medium">{current.email}</p>
+                    </div>
+                  </div>
+                )}
+                {current.city && (
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+                      <span className="material-symbols-outlined">location_on</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-label uppercase text-on-surface-variant">Location</p>
+                      <p className="text-sm font-medium">{current.city}</p>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-            {current.city && (
-              <div>
-                <span className="text-zinc-500">Location</span>
-                <p>{current.city}</p>
-              </div>
-            )}
-            {current.tags && (
-              <div>
-                <span className="text-zinc-500">Tags</span>
-                <div className="flex gap-1 mt-1">
+              {current.tags && (
+                <div className="mt-6 pt-4 border-t border-outline-variant/20 flex flex-wrap gap-1">
                   {current.tags.split(",").map((tag) => (
-                    <span key={tag} className="px-2 py-0.5 text-xs rounded-full bg-zinc-800">{tag}</span>
+                    <span key={tag} className="px-2 py-0.5 text-[10px] rounded-full bg-secondary-container text-on-secondary-container font-bold uppercase">{tag}</span>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </section>
+
+            <Link href={`/leads/${current.lead_id}`} className="text-center text-xs font-bold text-primary hover:text-primary-container transition-colors">
+              View Full Profile &rarr;
+            </Link>
           </div>
 
-          {/* Notes */}
-          <textarea
-            placeholder="Call notes (optional)..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-sm mb-6 resize-none focus:outline-none focus:border-zinc-600"
-            rows={3}
-          />
+          {/* Center: Notes */}
+          <div className="col-span-12 lg:col-span-4 space-y-6">
+            <div className="bg-surface-container-highest p-8 rounded-xl min-h-[300px] flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-headline font-bold text-lg">Call Notes</h4>
+              </div>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Type insights from the conversation..."
+                className="flex-1 bg-surface-container-lowest border-none focus:ring-2 focus:ring-primary-container rounded-xl p-4 text-sm font-body leading-relaxed text-on-surface resize-none shadow-inner"
+                rows={8}
+              />
+            </div>
 
-          {/* Outcome Buttons */}
-          <div className="space-y-2">
-            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-3">How did it go?</p>
-            <div className="grid grid-cols-2 gap-2">
-              {outcomes.map((o) => (
-                <button
-                  key={o.value}
-                  onClick={() => handleOutcome(o.value)}
-                  disabled={processing}
-                  className={`${o.color} px-4 py-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 text-left`}
-                >
-                  <div>{o.label}</div>
-                  <div className="text-xs opacity-75 mt-0.5">{o.desc}</div>
-                </button>
-              ))}
+            {/* Script Tips */}
+            <div className="bg-surface-container-low p-6 rounded-xl">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="material-symbols-outlined text-primary">tips_and_updates</span>
+                <h5 className="font-label font-bold text-xs uppercase tracking-widest">Script Tips</h5>
+              </div>
+              <ul className="text-xs text-on-surface-variant space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">1.</span>
+                  Open with a specific pain point for their industry
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">2.</span>
+                  Mention the ROI anchor: one charter pays for the system
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">3.</span>
+                  Ask about their current lead generation process
+                </li>
+              </ul>
             </div>
           </div>
 
-          {/* Skip */}
-          <button
-            onClick={() => {
-              if (currentIndex < queue.length - 1) {
-                setCurrentIndex((i) => i + 1);
-                setNotes("");
-              }
-            }}
-            className="w-full mt-3 px-4 py-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
-          >
-            Skip for now
-          </button>
+          {/* Right: Outcomes */}
+          <div className="col-span-12 lg:col-span-4 space-y-6">
+            <div className="bg-surface-container-highest p-6 rounded-xl">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-outline mb-4">How did it go?</p>
+              <div className="space-y-3">
+                {outcomes.map((o) => (
+                  <button
+                    key={o.value}
+                    onClick={() => handleOutcome(o.value)}
+                    disabled={processing}
+                    className={`${o.color} w-full px-5 py-4 rounded-xl text-left font-medium transition-all disabled:opacity-50 hover:scale-[1.01] active:scale-[0.99] shadow-sm`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>{o.icon}</span>
+                      <div>
+                        <div className="font-bold text-sm">{o.label}</div>
+                        <div className="text-[10px] opacity-75">{o.desc}</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                if (currentIndex < queue.length - 1) { setCurrentIndex((i) => i + 1); setNotes(""); }
+              }}
+              className="w-full px-4 py-3 text-sm text-outline hover:text-on-surface transition-colors rounded-xl border border-outline-variant/20 hover:bg-surface-container-low text-center font-medium"
+            >
+              Skip for now
+            </button>
+          </div>
         </div>
       )}
     </div>

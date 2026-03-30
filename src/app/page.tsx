@@ -22,36 +22,16 @@ interface Activity {
   created_at: string;
 }
 
-const stageLabels: Record<string, string> = {
-  new: "New",
-  contacted: "Contacted",
-  discovery: "Discovery",
-  proposal: "Proposal",
-  negotiation: "Negotiation",
-  "closed-won": "Closed Won",
-  "closed-lost": "Closed Lost",
-};
-
-const stageColors: Record<string, string> = {
-  new: "bg-zinc-600",
-  contacted: "bg-blue-600",
-  discovery: "bg-purple-600",
-  proposal: "bg-yellow-600",
-  negotiation: "bg-orange-600",
-  "closed-won": "bg-green-600",
-  "closed-lost": "bg-red-600",
-};
-
 const actionIcons: Record<string, string> = {
-  lead_created: "➕",
-  call_completed: "📞",
-  tag_added: "🏷️",
-  note_added: "📝",
-  stage_changed: "📊",
-  sequence_enrolled: "📧",
-  email_sent: "✉️",
-  email_opened: "👀",
-  list_added: "📋",
+  lead_created: "person_add",
+  call_completed: "call",
+  tag_added: "label",
+  note_added: "edit_note",
+  stage_changed: "swap_horiz",
+  sequence_enrolled: "forward_to_inbox",
+  email_sent: "mail",
+  email_opened: "visibility",
+  list_added: "playlist_add",
 };
 
 function timeAgo(dateStr: string): string {
@@ -61,8 +41,7 @@ function timeAgo(dateStr: string): string {
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 export default function DashboardPage() {
@@ -71,116 +50,183 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetch("/api/stats").then((r) => r.json()).then(setStats);
-    fetch("/api/activity?limit=15").then((r) => r.json()).then(setActivities);
+    fetch("/api/activity?limit=10").then((r) => r.json()).then(setActivities);
   }, []);
 
-  if (!stats) return <div className="text-zinc-500">Loading...</div>;
-
-  const pipelineStages = ["new", "contacted", "discovery", "proposal", "negotiation", "closed-won", "closed-lost"];
-  const totalInPipeline = pipelineStages.reduce((sum, s) => sum + (stats.pipeline[s] || 0), 0);
+  const pipelineStages = ["new", "contacted", "discovery", "proposal", "negotiation", "closed-won"];
+  const totalInPipeline = stats ? pipelineStages.reduce((s, k) => s + (stats.pipeline[k] || 0), 0) : 0;
 
   return (
     <div>
+      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-zinc-500 text-sm">Deals Machine overview</p>
+        <span className="text-primary font-label font-bold uppercase tracking-[0.2em] text-[10px]">Command Center</span>
+        <h1 className="font-headline text-3xl font-extrabold tracking-tight text-on-surface mt-1">Dashboard</h1>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <Link href="/leads" className="border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-colors">
-          <div className="text-3xl font-bold">{stats.total_leads}</div>
-          <div className="text-sm text-zinc-500">Total Leads</div>
-        </Link>
-        <Link href="/calls" className="border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-colors">
-          <div className="text-3xl font-bold">{stats.calls_pending}</div>
-          <div className="text-sm text-zinc-500">Calls Pending</div>
-        </Link>
-        <div className="border border-zinc-800 rounded-xl p-5">
-          <div className="text-3xl font-bold">{stats.calls_today}</div>
-          <div className="text-sm text-zinc-500">Calls Today</div>
-        </div>
-        <Link href="/sequences" className="border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-colors">
-          <div className="text-3xl font-bold">{stats.active_sequences}</div>
-          <div className="text-sm text-zinc-500">Active Sequences</div>
-        </Link>
-      </div>
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Left Column */}
+        <div className="flex-grow flex flex-col gap-8">
 
-      <div className="grid grid-cols-12 gap-6">
-        {/* Pipeline Summary */}
-        <div className="col-span-7">
-          <div className="border border-zinc-800 rounded-xl p-5 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Pipeline</h2>
-              <Link href="/pipeline" className="text-xs text-zinc-500 hover:text-white transition-colors">View all &rarr;</Link>
+          {/* Market Pulse Stats */}
+          <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-surface-container-highest/60 backdrop-blur-sm p-5 rounded-2xl border border-outline-variant/20 shadow-sm">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-outline">Total Leads</span>
+              <div className="flex items-end justify-between mt-2">
+                <span className="text-2xl font-black text-primary font-headline">{stats?.total_leads || 0}</span>
+                <span className="material-symbols-outlined text-primary/30">group</span>
+              </div>
             </div>
+            <div className="bg-surface-container-highest/60 backdrop-blur-sm p-5 rounded-2xl border border-outline-variant/20 shadow-sm">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-outline">Calls Pending</span>
+              <div className="flex items-end justify-between mt-2">
+                <span className="text-2xl font-black text-primary font-headline">{stats?.calls_pending || 0}</span>
+                <span className="material-symbols-outlined text-primary/30">call</span>
+              </div>
+            </div>
+            <div className="bg-surface-container-highest/60 backdrop-blur-sm p-5 rounded-2xl border border-outline-variant/20 shadow-sm">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-outline">Calls Today</span>
+              <div className="flex items-end justify-between mt-2">
+                <span className="text-2xl font-black text-primary font-headline">{stats?.calls_today || 0}</span>
+                <span className="material-symbols-outlined text-primary/30">trending_up</span>
+              </div>
+            </div>
+            <div className="bg-surface-container-highest/60 backdrop-blur-sm p-5 rounded-2xl border border-outline-variant/20 shadow-sm">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-outline">Active Sequences</span>
+              <div className="flex items-end justify-between mt-2">
+                <span className="text-2xl font-black text-primary font-headline">{stats?.active_sequences || 0}</span>
+                <span className="material-symbols-outlined text-primary/30">forward_to_inbox</span>
+              </div>
+            </div>
+          </section>
 
-            {/* Pipeline bar */}
-            {totalInPipeline > 0 && (
+          {/* Pipeline Overview */}
+          {stats && totalInPipeline > 0 && (
+            <section className="bg-surface-container-highest rounded-2xl p-6 border border-outline-variant/10">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-headline font-bold text-lg">Pipeline</h2>
+                <Link href="/pipeline" className="text-[10px] font-bold uppercase tracking-widest text-primary hover:text-primary-container transition-colors">
+                  View all &rarr;
+                </Link>
+              </div>
               <div className="flex h-3 rounded-full overflow-hidden mb-4">
                 {pipelineStages.map((stage) => {
                   const count = stats.pipeline[stage] || 0;
                   if (count === 0) return null;
                   const pct = (count / totalInPipeline) * 100;
-                  return (
-                    <div
-                      key={stage}
-                      className={`${stageColors[stage]} transition-all`}
-                      style={{ width: `${pct}%` }}
-                      title={`${stageLabels[stage]}: ${count}`}
-                    />
-                  );
+                  const colors: Record<string, string> = {
+                    new: "bg-outline",
+                    contacted: "bg-primary/40",
+                    discovery: "bg-primary/60",
+                    proposal: "bg-primary-container",
+                    negotiation: "bg-primary-fixed-dim",
+                    "closed-won": "bg-primary",
+                  };
+                  return <div key={stage} className={`${colors[stage] || "bg-outline"} transition-all`} style={{ width: `${pct}%` }} title={`${stage}: ${count}`} />;
                 })}
               </div>
-            )}
-
-            {/* Stage counts */}
-            <div className="grid grid-cols-4 gap-3">
-              {pipelineStages.filter((s) => s !== "closed-lost").map((stage) => (
-                <div key={stage} className="text-center">
-                  <div className="text-lg font-semibold">{stats.pipeline[stage] || 0}</div>
-                  <div className="text-xs text-zinc-500">{stageLabels[stage]}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+              <div className="grid grid-cols-6 gap-2">
+                {pipelineStages.map((stage) => (
+                  <div key={stage} className="text-center">
+                    <div className="text-lg font-bold font-headline">{stats.pipeline[stage] || 0}</div>
+                    <div className="text-[9px] text-outline uppercase font-bold tracking-wider">{stage.replace("-", " ")}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 gap-3">
-            <Link href="/leads" className="border border-zinc-800 rounded-xl p-4 hover:border-zinc-600 hover:bg-zinc-900 transition-all text-center">
-              <div className="font-medium text-sm">Lead Bank</div>
-              <div className="text-xs text-zinc-500 mt-1">Browse & import contacts</div>
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Link href="/calls" className="bg-inverse-surface text-inverse-on-surface rounded-2xl p-6 shadow-xl hover:scale-[1.01] transition-transform relative overflow-hidden group">
+              <div className="absolute top-0 right-0 opacity-10">
+                <span className="material-symbols-outlined text-8xl">call</span>
+              </div>
+              <div className="relative z-10">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary-fixed-dim">Ready to dial</span>
+                <h3 className="font-headline font-extrabold text-xl mt-2">Start Calling</h3>
+                <p className="text-inverse-on-surface/60 text-sm mt-1">{stats?.calls_pending || 0} contacts in queue</p>
+                <div className="mt-4 flex items-center gap-2 text-primary-fixed-dim text-sm font-bold">
+                  Open Dialer <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </div>
+              </div>
             </Link>
-            <Link href="/calls" className="border border-zinc-800 rounded-xl p-4 hover:border-zinc-600 hover:bg-zinc-900 transition-all text-center">
-              <div className="font-medium text-sm">Start Calling</div>
-              <div className="text-xs text-zinc-500 mt-1">{stats.calls_pending} in queue</div>
+            <Link href="/leads" className="bg-surface-container-highest rounded-2xl p-6 border border-outline-variant/10 hover:border-primary/20 transition-all hover:scale-[1.01] group">
+              <span className="material-symbols-outlined text-primary text-3xl">group</span>
+              <h3 className="font-headline font-extrabold text-xl mt-3">Lead Bank</h3>
+              <p className="text-on-surface-variant text-sm mt-1">Browse, import & manage contacts</p>
+              <div className="mt-4 flex items-center gap-2 text-primary text-sm font-bold">
+                Open Leads <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              </div>
             </Link>
-          </div>
+          </section>
         </div>
 
-        {/* Activity Feed */}
-        <div className="col-span-5">
-          <div className="border border-zinc-800 rounded-xl p-5">
-            <h2 className="font-semibold mb-4">Recent Activity</h2>
-            <div className="space-y-3">
+        {/* Right Column */}
+        <div className="w-full lg:w-80 flex flex-col gap-8">
+          {/* Activity Feed */}
+          <div className="bg-surface-container-highest rounded-2xl p-6 border border-outline-variant/10">
+            <h3 className="font-headline font-bold text-[10px] uppercase tracking-widest mb-6 border-b border-outline-variant/30 pb-3">
+              Recent Activity
+            </h3>
+            <div className="space-y-4">
               {activities.map((a) => (
-                <Link key={a.id} href={`/leads/${a.lead_id}`} className="flex gap-3 hover:bg-zinc-900 -mx-2 px-2 py-1 rounded-lg transition-colors">
-                  <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-xs shrink-0 mt-0.5">
-                    {actionIcons[a.action] || "·"}
+                <Link key={a.id} href={`/leads/${a.lead_id}`} className="flex gap-3 hover:bg-surface-container-low -mx-2 px-2 py-1.5 rounded-xl transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-primary shrink-0">
+                    <span className="material-symbols-outlined text-sm">{actionIcons[a.action] || "circle"}</span>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm truncate">
-                      <span className="font-medium">{a.first_name} {a.last_name}</span>
-                      <span className="text-zinc-500"> · {a.description}</span>
-                    </p>
-                    <p className="text-xs text-zinc-600">{timeAgo(a.created_at)}</p>
+                    <p className="text-sm font-medium truncate">{a.first_name} {a.last_name}</p>
+                    <p className="text-[10px] text-on-surface-variant truncate">{a.description}</p>
+                    <p className="text-[9px] text-outline mt-0.5">{timeAgo(a.created_at)}</p>
                   </div>
                 </Link>
               ))}
               {activities.length === 0 && (
-                <p className="text-sm text-zinc-600">No activity yet. Start by importing leads.</p>
+                <p className="text-sm text-outline text-center py-8">No activity yet. Import leads to get started.</p>
               )}
             </div>
+          </div>
+
+          {/* Performance Card */}
+          <div className="bg-surface-container-high/40 rounded-2xl p-6 border border-outline-variant/20">
+            <h3 className="font-headline font-bold text-[10px] uppercase tracking-widest mb-6 border-b border-outline-variant/30 pb-3">
+              Today&apos;s Progress
+            </h3>
+            <div className="space-y-6">
+              <div>
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-xs font-bold text-outline">Call Volume</span>
+                  <span className="text-xs font-black text-primary">{stats?.calls_today || 0} / 20</span>
+                </div>
+                <div className="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${Math.min(((stats?.calls_today || 0) / 20) * 100, 100)}%` }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-xs font-bold text-outline">Pipeline Built</span>
+                  <span className="text-xs font-black text-primary">{totalInPipeline} leads</span>
+                </div>
+                <div className="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${Math.min((totalInPipeline / 50) * 100, 100)}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bento Insight Card */}
+          <div className="bg-primary text-on-primary rounded-2xl p-6 shadow-2xl shadow-primary/20">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h5 className="font-bold text-sm text-on-primary/80 uppercase tracking-widest">Quick Tip</h5>
+                <p className="text-xl font-black mt-1 font-headline">Build the Pipeline</p>
+              </div>
+              <span className="material-symbols-outlined text-on-primary/60 text-3xl">tips_and_updates</span>
+            </div>
+            <p className="text-xs text-on-primary/70 leading-relaxed">
+              Import a CSV of prospects, add them to the call queue, and work through them one by one. Tag outcomes to auto-sort into follow-up lists.
+            </p>
           </div>
         </div>
       </div>
