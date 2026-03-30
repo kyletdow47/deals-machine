@@ -102,6 +102,14 @@ CREATE TABLE IF NOT EXISTS lead_notes (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Lead memory (AI-synthesized context)
+CREATE TABLE IF NOT EXISTS lead_memory (
+  lead_id TEXT PRIMARY KEY REFERENCES leads(id) ON DELETE CASCADE,
+  summary TEXT,
+  raw_context TEXT,
+  last_updated TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Seed default lists
 INSERT INTO lists (id, name, description, auto_tag) VALUES
   ('list-positive', 'Positive', 'Interested leads from calls', 'positive'),
@@ -112,6 +120,7 @@ ON CONFLICT (name) DO NOTHING;
 
 -- Enable RLS
 ALTER TABLE tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lead_memory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE list_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sequences ENABLE ROW LEVEL SECURITY;
@@ -131,6 +140,7 @@ CREATE POLICY "Allow all" ON sequence_enrollments FOR ALL USING (true);
 CREATE POLICY "Allow all" ON call_queue FOR ALL USING (true);
 CREATE POLICY "Allow all" ON activity_log FOR ALL USING (true);
 CREATE POLICY "Allow all" ON lead_notes FOR ALL USING (true);
+CREATE POLICY "Allow all" ON lead_memory FOR ALL USING (true);
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_tags_lead ON tags(lead_id);

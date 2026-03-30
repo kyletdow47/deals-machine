@@ -11,6 +11,7 @@ interface Lead {
 }
 interface Activity { id: string; action: string; description: string; created_at: string; }
 interface Note { id: string; content: string; created_at: string; }
+interface Memory { lead_id: string; summary: string | null; raw_context: string | null; last_updated: string | null; }
 
 const stages = ["new", "contacted", "discovery", "proposal", "negotiation", "closed-won", "closed-lost"];
 const stageLabels: Record<string, string> = { new: "New", contacted: "Contacted", discovery: "Discovery", proposal: "Proposal", negotiation: "Negotiation", "closed-won": "Closed Won", "closed-lost": "Closed Lost" };
@@ -31,16 +32,20 @@ export default function ContactDetailPage() {
   const [lead, setLead] = useState<Lead | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [memory, setMemory] = useState<Memory | null>(null);
+  const [synthLoading, setSynthLoading] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Lead>>({});
 
   const fetchAll = useCallback(async () => {
-    const [lr, ar, nr] = await Promise.all([
-      fetch(`/api/leads/${params.id}`), fetch(`/api/leads/${params.id}/activity`), fetch(`/api/leads/${params.id}/notes`),
+    const [lr, ar, nr, mr] = await Promise.all([
+      fetch(`/api/leads/${params.id}`), fetch(`/api/leads/${params.id}/activity`),
+      fetch(`/api/leads/${params.id}/notes`), fetch(`/api/leads/${params.id}/memory`),
     ]);
     if (!lr.ok) return router.push("/leads");
     const ld = await lr.json(); setLead(ld); setEditForm(ld);
+    setMemory(await mr.json());
     setActivities(await ar.json()); setNotes(await nr.json());
   }, [params.id, router]);
 
@@ -59,6 +64,13 @@ export default function ContactDetailPage() {
     await fetch(`/api/leads/${params.id}/notes`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: newNote }) });
     setNewNote(""); fetchAll();
   };
+  const synthesizeMemory = async () => {
+    setSynthLoading(true);
+    const res = await fetch(`/api/leads/${params.id}/memory`, { method: "POST" });
+    setMemory(await res.json());
+    setSynthLoading(false);
+  };
+
   const addToQueue = async () => {
     await fetch("/api/calls", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lead_ids: [params.id] }) });
     fetchAll();
@@ -148,6 +160,35 @@ export default function ContactDetailPage() {
                   <span key={t} className="px-2 py-0.5 text-[10px] rounded-full bg-secondary-container text-on-secondary-container font-bold uppercase">{t}</span>
                 ))}
               </div>
+            )}
+          </section>
+
+          {/* AI Memory */}
+          <section className="bg-inverse-surface text-inverse-on-surface rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary-fixed-dim" style={{ fontVariationSettings: "'FILL' 1" }}>psychology</span>
+                <h3 className="font-headline font-bold text-lg">AI Memory</h3>
+              </div>
+              <button onClick={synthesizeMemory} disabled={synthLoading}
+                className="text-[10px] font-bold uppercase tracking-widest text-primary-fixed-dim hover:text-primary-fixed disabled:opacity-50 flex items-center gap-1 transition-colors">
+                <span className="material-symbols-outlined text-sm">{synthLoading ? "hourglass_top" : "sync"}</span>
+                {synthLoading ? "Synthesizing..." : "Refresh"}
+              </button>
+            </div>
+            {memory?.summary ? (
+              <p className="text-sm leading-relaxed text-inverse-on-surface/80">{memory.summary}</p>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-inverse-on-surface/50 text-sm mb-3">No memory synthesized yet</p>
+                <button onClick={synthesizeMemory} disabled={synthLoading}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/15 rounded-xl text-xs font-bold transition-colors btn-press">
+                  Generate Memory
+                </button>
+              </div>
+            )}
+            {memory?.last_updated && (
+              <p className="text-[10px] text-inverse-on-surface/40 mt-3">Last updated: {fmtDate(memory.last_updated)}</p>
             )}
           </section>
 
