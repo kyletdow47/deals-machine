@@ -30,7 +30,7 @@ function ProgressBar({ label, value, color = "bg-primary" }) {
   );
 }
 
-function ConversionChart({ rate }) {
+function ConversionChart() {
   const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN"];
   // Static decorative path that curves upward
   const pathD = "M 40 140 C 80 130, 120 120, 180 100 S 280 60, 340 70 S 440 40, 520 30";
@@ -111,8 +111,6 @@ export default function AnalyticsPage() {
     skippedLeads,
     actioned,
     mode,
-    MODES,
-    VERTICALS,
     intel,
   } = useApp();
 
@@ -132,7 +130,6 @@ export default function AnalyticsPage() {
     ? (skippedLeads.length / actioned.length) * 100
     : 0;
 
-  const currentMode = MODES.find((m) => m.id === mode) || MODES[0];
   const isJets = mode === "private_jets";
 
   // Region data based on mode

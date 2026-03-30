@@ -1,8 +1,12 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-@theme {
-  /* ── Dark base ─────────────────────────────────────────────── */
+/* ── Design tokens (CSS custom properties) ─────────────────── */
+:root {
+  /* Dark base */
   --color-background:              #111827;
   --color-surface:                 #111827;
   --color-surface-container-lowest:#0F172A;
@@ -14,27 +18,27 @@
   --color-surface-dim:             #0F172A;
   --color-surface-bright:          #1F2937;
 
-  /* ── Text ──────────────────────────────────────────────────── */
+  /* Text */
   --color-on-surface:              #F9FAFB;
   --color-on-surface-variant:      #9CA3AF;
   --color-on-background:           #F9FAFB;
 
-  /* ── Borders ───────────────────────────────────────────────── */
+  /* Borders */
   --color-outline:                 #374151;
   --color-outline-variant:         #1F2937;
 
-  /* ── Electric blue primary ─────────────────────────────────── */
+  /* Electric blue primary */
   --color-primary:                 #3B82F6;
   --color-primary-container:       #1E3A5F;
   --color-on-primary:              #FFFFFF;
   --color-on-primary-container:    #93C5FD;
 
-  /* ── Inverse (dark cards) ──────────────────────────────────── */
+  /* Inverse (dark cards) */
   --color-inverse-surface:         #1E3A5F;
   --color-inverse-on-surface:      #E0F2FE;
   --color-inverse-primary:         #93C5FD;
 
-  /* ── Semantic ──────────────────────────────────────────────── */
+  /* Semantic */
   --color-secondary:               #6B7280;
   --color-secondary-container:     #374151;
   --color-on-secondary:            #F9FAFB;
@@ -50,12 +54,12 @@
   --color-on-error:                #FEF2F2;
   --color-on-error-container:      #FCA5A5;
 
-  /* ── Fixed / misc ──────────────────────────────────────────── */
+  /* Fixed / misc */
   --color-primary-fixed:           #DBEAFE;
   --color-primary-fixed-dim:       #93C5FD;
   --color-surface-tint:            #3B82F6;
 
-  /* ── Fonts ─────────────────────────────────────────────────── */
+  /* Fonts */
   --font-headline: "Inter", sans-serif;
   --font-body:     "Inter", sans-serif;
   --font-label:    "Inter", sans-serif;

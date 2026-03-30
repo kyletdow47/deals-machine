@@ -51,7 +51,7 @@ function DarkCard({ children, className = "", style = {} }) {
 export default function DialerPage() {
   const {
     selectedLead, scripts, leads, callNotes, setCallNotes,
-    callTags, toggleCallTag, completeCall, selectLeadForDialer, actioned,
+    callTags, toggleCallTag, completeCall, actioned,
   } = useApp();
 
   const lead   = selectedLead || (leads.length > 0 ? leads[0] : null);
@@ -353,7 +353,7 @@ export default function DialerPage() {
               { icon: "pause",     label: "Pause",   action: () => {},              colour: null },
               { icon: "call_made", label: "Fwd",     action: () => {},              colour: null },
               { icon: "call_end",  label: "End",     action: endCall,               colour: "#EF4444", danger: true },
-            ].map(({ icon, label, action, colour, danger }) => (
+            ].map(({ icon, label, action, danger }) => (
               <button key={label} onClick={action}
                 className="flex flex-col items-center gap-1 p-3 rounded-xl transition-colors"
                 style={danger

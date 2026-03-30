@@ -68,7 +68,7 @@ export default function LeadBankPage() {
     loading, loadingScripts, error, setError,
     handleModeChange, setVertical, fetchLeads, runPoliticalScan,
     handleAction, selectLeadForDialer, loadMore,
-    searchQuery, setSearchQuery, page, allDone, actioned,
+    searchQuery, setSearchQuery, actioned,
   } = useApp();
 
   const [tagMenuId, setTagMenuId]     = useState(null);

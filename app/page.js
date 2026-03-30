@@ -63,7 +63,7 @@ function StatCard({ icon, label, value, delta, deltaLabel, accent }) {
 }
 
 // ── Priority Action Card ─────────────────────────────────────
-function PriorityCard({ icon, colour, title, subtitle, action, href, onClick }) {
+function PriorityCard({ icon, colour, title, subtitle, href, onClick }) {
   return (
     <Link
       href={href || "#"}
@@ -230,7 +230,7 @@ function PlaybookSection({ title, icon, children, defaultOpen = false }) {
 export default function DashboardPage() {
   const {
     leads, savedLeads, calledLeads, skippedLeads,
-    scripts, intel, loading, mode, MODES, actioned,
+    intel, loading, mode, MODES, actioned,
     fetchLeads, runPoliticalScan, selectLeadForDialer,
   } = useApp();
 
@@ -341,9 +341,9 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 <div className="p-4 rounded-xl" style={{ background: "rgba(255,255,255,0.04)" }}>
                   <p className="text-blue-100/80 text-sm leading-relaxed">
-                    "Hi [Name], Kyle from FlyFX — air charter specialist. I spotted your company
+                    &quot;Hi [Name], Kyle from FlyFX — air charter specialist. I spotted your company
                     does [vertical] shipments and wanted to see if you ever need urgent or oversized air
-                    freight. We broker full and part-charter capacity worldwide."
+                    freight. We broker full and part-charter capacity worldwide.&quot;
                   </p>
                 </div>
                 <div className="p-4 rounded-xl flex items-start gap-3"
@@ -354,8 +354,8 @@ export default function DashboardPage() {
                       Say this on every call
                     </p>
                     <p className="text-blue-100/70 text-sm leading-relaxed">
-                      "Even if nothing is moving today, I'd love to be the first call when something
-                      urgent comes up. Can I send you our capability deck?"
+                      &quot;Even if nothing is moving today, I&apos;d love to be the first call when something
+                      urgent comes up. Can I send you our capability deck?&quot;
                     </p>
                   </div>
                 </div>
